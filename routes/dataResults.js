@@ -37,6 +37,27 @@ function executeQuery(query,res,type = 1) {
     }); 
 }
 
+class Results {
+    constructor(obj){
+        console.log(obj);
+        this.ga_gender=obj.ga_gender,
+		this.Organization=obj.Organization,
+		this.create_date=obj.create_date,
+		this.conference_code=obj.conference_code,
+		this.primary =obj.primary,
+		this.secondary=obj.secondary,
+		this.dormant=obj.dormant,
+		this.archetype=obj.archetype,
+		this.user_id=obj.user_id,
+		this.power=obj.power,
+		this.trust=obj.trust,
+		this.prestige=obj.prestige,
+		this.passion=obj.passion,
+		this.mystique=obj.mystique,
+		this.innovation=obj.innovation,
+		this.alert=obj.alert
+    }
+}
 // Default FootBALL API REQUESTS FOR DATA
 router.use((req, res, next) => {
 
@@ -47,7 +68,12 @@ router.use((req, res, next) => {
 
 router.get('/',(req,res,next)=>{
 
-    res.status(200).send(data);
+    
+    let responseArray = data.map( object =>{
+        let incommingRow = new Results(object);
+        return incommingRow;
+    })
+    res.status(200).send(responseArray);
 
     
 

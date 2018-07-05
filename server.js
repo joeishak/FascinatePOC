@@ -14,7 +14,7 @@ app.use(bodyParser({limit:'500mb',extended:true,parameterLimit:50000}));
 
 
 //Tell the server where to listen 
-server.listen(8010, () => {
+server.listen(8012, () => {
     console.log("Fascinate POC API Listening On Port 8012")
 });
 

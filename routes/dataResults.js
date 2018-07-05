@@ -2,16 +2,15 @@
 
 let express                    = require('express');
 let router                     = express.Router();
-let request                    = require('request');
 let config                     = require('../configuration/config');
 let sqlInstance                = require('mssql');
-let db                         = require('../configuration/db');
-const pool                     = new sqlInstance.ConnectionPool(config)
-
-
+// let db                         = require('../configuration/db');
+// const pool                     = new sqlInstance.ConnectionPool(config)
+convertExcel = require('excel-as-json').processFile
+ let data = require('../data');
 //Check for Errors
-pool.connect(err => {
-})
+// pool.connect(err => {
+// })
 
 function executeQuery(query,res,type = 1) {
 
@@ -44,6 +43,14 @@ router.use((req, res, next) => {
     console.log("Welcome to the Fascinate POC Route");
 
     next();
+});
+
+router.get('/',(req,res,next)=>{
+
+    res.status(200).send(data);
+
+    
+
 });
 
 module.exports = router;

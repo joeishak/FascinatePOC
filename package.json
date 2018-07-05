@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.18.3",
+    "excel-as-json": "^2.0.2",
     "express": "^4.16.3",
     "http": "0.0.0",
     "mssql": "^4.1.0"

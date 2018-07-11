@@ -6,8 +6,8 @@ Default Route: localhost:8012/
 2. Returns the whole array of results
 
 # Route 2: Total Number of Records By Primary Advantage
-..* localhost:8012/primary-counts
-..* Returns an array of primary advantages with a total count
+..+ localhost:8012/primary-counts
+..- Returns an array of primary advantages with a total count
 
 # Route 3: Total Number of Records By Secondary Advantage
 ..* localhost:8012/secondary-counts

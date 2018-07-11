@@ -2,7 +2,7 @@
 Default Route: localhost:8012/
 
 # Route 1: Data
-..* localhost:8012/data
+.. localhost:8012/data
 ..* Returns the whole array of results
 
 # Route 2: Total Number of Records By Primary Advantage

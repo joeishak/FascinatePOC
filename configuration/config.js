@@ -1,6 +1,9 @@
 module.exports = {
-    server: 'localhost',
-    database: 'worldcup',
-    user: 'jishak',
-    password: 'Infosol123!'
+    server: 'infosol-dev-test.database.windows.net',
+    user: 'serverAdmin',
+    password: 'C#form$ru!',
+    options: {
+        database: 'infosolDB',
+        encrypt: true
+    }
 };

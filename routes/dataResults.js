@@ -176,14 +176,34 @@ function getIndex(advantage){
     }
 // Default FootBALL API REQUESTS FOR DATA
 router.use((req, res, next) => {
-
     console.log("Welcome to the Fascinate POC Route");
-
     next();
 });
+
 router.get('/data',(req,res,next)=>{
     executeQuery("Select * from fascinationresults;",res);
-})
+});
+router.get('/rangebar-data:boxkey',(req,res,next)=>{
+     
+     let boxkey = req.params.boxkey;
+     console.log(boxkey);
+     boxkey = boxkey.split(':',)[1];
+     if(boxkey!=undefined){
+        executeQuery(`select * from ViewOrgAdvantages
+            where boxKey = ${boxkey}`,res);
+     }
+     else executeQuery(`select * from ViewOrgAdvantages;`,res);
+ });
+
+router.get('/secondary-counts',(req,res,next) => {
+    executeQuery(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
+    from fascinationresults group by secondaryadvantage`,res); 
+});
+
+router.get('/primary-counts',(req,res,next) => {
+    executeQuery(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+    from fascinationresults group by primaryadvantage`,res); 
+});
 
 router.get('/insertData',(req,res,next)=>{
 

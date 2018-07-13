@@ -19,92 +19,10 @@ var config =
         }
    }
 const pool                     = new sqlInstance.ConnectionPool(config)
-// var Connection = require('tedious').Connection;
-// var Request = require('tedious').Request;
-
-// Create connection to database
-
-// var connection = new Connection(config);
-
-// Attempt to connect and execute queries if connection goes through
-// connection.on('connect', function(err) 
-//    {
-//      if (err) 
-//        {
-//           console.log(err)
-//        }
-//     else
-//        {
-//         //    queryDatabase()
-//        }
-//    }
-//  );
-
-// function queryDatabase(sql)
-//    { console.log('Reading rows from the Table...');
-
-//        // Read all rows from table
-//      request = new Request(
-//           sql,
-//              function(err, rowCount, rows) 
-//                 {
-//                     if(err) throw err;
-//                     console.log("Inserted");
-//                     process.exit();
-//                 }
-//             );
-
-//      request.on('row', function(columns) {
-//         columns.forEach(function(column) {
-//             console.log("%s\t%s", column.metadata.colName, column.value);
-//          });
-//              });
-//      connection.execSql(request);
-//    }
- let data = require('../data');
 // Check for Errors
 pool.connect(err => {
     throw err;
 })
-// function executeQuery(query){
-
-//     const request = new sqlInstance.Request(pool)
-//     request.query(query, function (err, result) {
-//         if (err) {
-//             console.log(err);
-//             throw err;
-//         }
-
-//         data = result.recordset;
-//         if(type!=1){
-//             // console.log(data);
-//             let seriesData = data;
-//             seriesData.forEach(series => {
-
-//                transformSeries(series);
-//             });
-//             return seriesFormat;
-//         }
-//         else{
-//             return result;
-//         }
-//     }); 
-// }
-function executeQuery(query,res,type = 1) {
-
-    const request = new sqlInstance.Request(pool)
-    request.query(query, function (err, result) {
-        if (err) {
-            console.log(err);
-            throw err;
-        }
-
-        data = result.recordset;
-        console.log(data);
-        res.send(data);
-    }); 
-
-}
 
 class Results {
     constructor(obj){
@@ -148,6 +66,85 @@ class Results {
     }
 }
 
+// Default FootBALL API REQUESTS FOR DATA
+router.use((req, res, next) => {
+    console.log("Welcome to the Fascinate POC Route");
+    next();
+});
+
+router.get('/data',(req,res,next)=>{
+    executeQuery("Select * from fascinationresults;",res);
+});
+router.get('/primary-population:organization',(req,res,next)=>{
+    let orgFilter = req.params.organization;
+    orgFilter = orgFilter.split(':',)[1];
+    console.log('Fetching primary population data for organization',orgFilter);
+
+    getPrimaryPopulationData(res, orgFilter);
+});
+router.get('/dormant-population:organization',(req,res,next)=>{
+    let orgFilter = req.params.organization;
+    orgFilter = orgFilter.split(':',)[1];
+    console.log('Fetching dormant population data for organization',orgFilter);
+    getDormantPopulationData(res, orgFilter);
+});
+router.get('/rangebar-data:boxkey',(req,res,next)=>{
+     
+    let boxkey = req.params.boxkey;
+    // console.log(boxkey);
+    boxkey = boxkey.split(':',)[1];
+    if(boxkey!=undefined){
+       executeQuery(`select * from ViewOrgAdvantages
+           where boxKey = ${boxkey}`,res);
+    }
+    else executeQuery(`select * from ViewOrgAdvantages;`,res);
+});
+
+router.get('/secondary-counts',(req,res,next) => {
+   executeQuery(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
+   from fascinationresults group by secondaryadvantage`,res); 
+});
+
+router.get('/primary-counts',(req,res,next) => {
+   executeQuery(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+   from fascinationresults group by primaryadvantage`,res); 
+});
+
+router.get('/insertData',(req,res,next)=>{
+
+   let sql = "";
+   // let responseArray = data.map( object =>{
+   //      return  incommingRow.insertIntoDatabase(false);
+   // });
+   for(let i = 0; i< data.length; i++) {
+       let object = data[i];
+       let incommingRow = new Results(object);
+       let newSql = incommingRow.insertIntoDatabase(true);
+       if(newSql.includes('undefined')){
+
+       }else{
+           sql+=newSql;
+
+       }
+       // console.log(newSql);
+    }
+   executeQuery(sql,res,1)
+});
+function executeQuery(query,res,type = 1) {
+
+    const request = new sqlInstance.Request(pool)
+    request.query(query, function (err, result) {
+        if (err) {
+            console.log(err);
+            throw err;
+        }
+
+        data = result.recordset;
+        // console.log(data);
+        res.send(data);
+    }); 
+
+}
 function getIndex(advantage){
     switch(advantage) {
             case "innovation":
@@ -174,59 +171,84 @@ function getIndex(advantage){
           }
      
     }
-// Default FootBALL API REQUESTS FOR DATA
-router.use((req, res, next) => {
-    console.log("Welcome to the Fascinate POC Route");
-    next();
-});
-
-router.get('/data',(req,res,next)=>{
-    executeQuery("Select * from fascinationresults;",res);
-});
-router.get('/rangebar-data:boxkey',(req,res,next)=>{
-     
-     let boxkey = req.params.boxkey;
-     console.log(boxkey);
-     boxkey = boxkey.split(':',)[1];
-     if(boxkey!=undefined){
-        executeQuery(`select * from ViewOrgAdvantages
-            where boxKey = ${boxkey}`,res);
-     }
-     else executeQuery(`select * from ViewOrgAdvantages;`,res);
- });
-
-router.get('/secondary-counts',(req,res,next) => {
-    executeQuery(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
-    from fascinationresults group by secondaryadvantage`,res); 
-});
-
-router.get('/primary-counts',(req,res,next) => {
-    executeQuery(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
-    from fascinationresults group by primaryadvantage`,res); 
-});
-
-router.get('/insertData',(req,res,next)=>{
-
-    let sql = "";
-    // let responseArray = data.map( object =>{
-    //      return  incommingRow.insertIntoDatabase(false);
-    // });
-    for(let i = 0; i< data.length; i++) {
-        let object = data[i];
-        let incommingRow = new Results(object);
-        let newSql = incommingRow.insertIntoDatabase(true);
-        if(newSql.includes('undefined')){
-
+function getPrimaryPopulationData(res,org){
+    const request = new sqlInstance.Request(pool);
+    let response = {};
+    let population;
+    let organizational;
+    org = (org==undefined ? "": org)
+    // console.log('filter: ', org);
+    
+    request.query(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+    from vieworgadvantages
+    where organization = '${org}'
+     group by primaryadvantage
+    order by 1;`,  (err, result)=> {
+        if (err) {
+            console.log(err);
+            throw err;
         }else{
-            sql+=newSql;
+            console.log('We got a response for the primary population donut chart',result.recordsets.length);
+            organizational = result.recordsets;
+            // console.log(organizational);
+            const innerRequest = new sqlInstance.Request(pool);
+            innerRequest.query(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+            from vieworgadvantages
+            where organization != '${org}'
+             group by primaryadvantage
+            
+             order by 1;`,(err2,result2)=>{
+            if(err) throw err;
+            population = result2.recordsets;
+            console.log('We got a response for the primary population donut chart',result2.recordsets.length);
 
-        }
-        // console.log(newSql);
+            response.population = population;
+            response.organizatinal = organizational
+            // console.log(response);
+            res.send(response);
+            });
+    
+           
+        }        
+    }); 
+}
+function getDormantPopulationData(res,org){
+    const request = new sqlInstance.Request(pool);
+    let response = {};
+    let population;
+    let organizational;
+    org = (org==undefined ? "": org)
+    
+    request.query(`select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
+    from vieworgadvantages
+    where organization = '${org}'
+     group by dormantadvantage
+    order by 1;`,  (err, result)=> {
+        if (err) {
+            console.log(err);
+            throw err;
+        }else{
+            organizational = result.recordsets;
+            const innerRequest = new sqlInstance.Request(pool);
+            innerRequest.query(`select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
+            from vieworgadvantages
+            where organization != '${org}'
+             group by dormantadvantage
+            
+             order by 1;`,(err2,result2)=>{
+            if(err) throw err;
+            population = result2.recordsets;
+            console.log('We got a response for the primary population donut chart',result2.recordsets.length);
 
-    }
+            response.population = population;
+            response.organizatinal = organizational
+            res.send(response);
+            });
+    
+           
+        }        
+    }); 
+}
 
-    executeQuery(sql,res,1)
-
-});
 
 module.exports = router;

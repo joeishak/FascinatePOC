@@ -57,7 +57,6 @@ class Results {
             `${this.prestige},${this.passion},${this.mystique},${this.innovation},${this.alert},${this.key});`;  
         if(execute){
             return sql;
-
         }
         else{
         //    return  executeQuery(sql);
@@ -78,10 +77,32 @@ router.get('/data',(req,res,next)=>{
 router.get('/primary-population:organization',(req,res,next)=>{
     let orgFilter = req.params.organization;
     orgFilter = orgFilter.split(':',)[1];
-    console.log('Fetching primary population data for organization',orgFilter);
+    console.log('Fetching primary archetype population data for organization',orgFilter);
 
     getPrimaryPopulationData(res, orgFilter);
 });
+
+router.get('/secondary-population:organization',(req,res,next)=>{
+    let orgFilter = req.params.organization;
+    orgFilter = orgFilter.split(':',)[1];
+    console.log('Fetching secondary archetype population data for organization',orgFilter);
+
+    getSecondaryPopulationData(res, orgFilter);
+});
+// router.get('/primary-archetype-population/:organization/:boxkey',(req,res,next)=>{
+//     let orgFilter = req.params.organization;
+//     let boxFilter = req.params.boxkey;
+//     console.log(`Fetching primary ${boxFilter} population data for ${orgFilter}`);
+//     getPrimaryArchetypePopulationData(res,orgFilter,boxFilter);
+
+// });
+// router.get('/dormant-archetype-population/:organization/:boxkey',(req,res,next)=>{
+//     let orgFilter = req.params.organization;
+//     let boxFilter = req.params.boxkey;
+//     console.log(`Fetching dormant ${boxFilter} population data for ${orgFilter}`);
+//     getDormantArchetypePopulationData(res,orgFilter,boxFilter);
+
+// });
 router.get('/dormant-population:organization',(req,res,next)=>{
     let orgFilter = req.params.organization;
     orgFilter = orgFilter.split(':',)[1];
@@ -212,6 +233,47 @@ function getPrimaryPopulationData(res,org){
         }        
     }); 
 }
+function getSecondaryPopulationData(res,org){
+    const request = new sqlInstance.Request(pool);
+    let response = {};
+    let population;
+    let organizational;
+    org = (org==undefined ? "": org)
+    // console.log('filter: ', org);
+    
+    request.query(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
+    from vieworgadvantages
+    where organization = '${org}'
+     group by secondaryadvantage
+    order by 1;`,  (err, result)=> {
+        if (err) {
+            console.log(err);
+            throw err;
+        }else{
+            console.log('We got a response for the secondary population donut chart',result.recordsets.length);
+            organizational = result.recordsets;
+            // console.log(organizational);
+            const innerRequest = new sqlInstance.Request(pool);
+            innerRequest.query(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
+            from vieworgadvantages
+            where organization != '${org}'
+             group by secondaryadvantage
+            
+             order by 1;`,(err2,result2)=>{
+            if(err) throw err;
+            population = result2.recordsets;
+            console.log('We got a response for the secondary population donut chart',result2.recordsets.length);
+
+            response.population = population;
+            response.organizatinal = organizational
+            // console.log(response);
+            res.send(response);
+            });
+    
+           
+        }        
+    }); 
+}
 function getDormantPopulationData(res,org){
     const request = new sqlInstance.Request(pool);
     let response = {};
@@ -236,6 +298,89 @@ function getDormantPopulationData(res,org){
              group by dormantadvantage
             
              order by 1;`,(err2,result2)=>{
+            if(err) throw err;
+            population = result2.recordsets;
+            console.log('We got a response for the primary population donut chart',result2.recordsets.length);
+
+            response.population = population;
+            response.organizatinal = organizational
+            res.send(response);
+            });
+    
+           
+        }        
+    }); 
+}
+
+function getPrimaryArchetypePopulationData(res,org,key){
+    const request = new sqlInstance.Request(pool);
+    let response = {};
+    let population;
+    let organizational;
+    key = (key == undefined) ? "": key;
+    org = (org == undefined ? "": org)
+    // console.log('filter: ', org);
+    
+    request.query(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+    from vieworgadvantages
+    where organization = '${org}'
+    and boxkey like '%${key}%'
+     group by primaryadvantage
+    order by 1;`,  (err, result)=> {
+        if (err) {
+            console.log(err);
+            throw err;
+        }else{
+            console.log('We got a response for the primary population donut chart',result.recordsets.length);
+            organizational = result.recordsets;
+            console.log(organizational);
+            const innerRequest = new sqlInstance.Request(pool);
+            innerRequest.query(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+            from vieworgadvantages
+            where organization != '${org}'
+            and boxkey != '${key}'
+             group by primaryadvantage
+             order by 1;`,(err2,result2)=>{
+            if(err) throw err;
+            population = result2.recordsets;
+            console.log('We got a response for the primary population donut chart',result2.recordsets.length);
+
+            response.population = population;
+            response.organizatinal = organizational
+            // console.log(response);
+            res.send(response);
+            });
+    
+           
+        }        
+    }); 
+}
+function getDormantArchetypePopulationData(res,org,key){
+    const request = new sqlInstance.Request(pool);
+    let response = {};
+    let population;
+    let organizational;
+    key = (key ==undefined) ? "": key;
+    org = (org==undefined) ? "": org;
+    
+    request.query(`select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
+    from vieworgadvantages
+    where organization = '${org}'
+    and boxkey like '%${key}%'
+     group by dormantadvantage
+    order by 1;`,  (err, result)=> {
+        if (err) {
+            console.log(err);
+            throw err;
+        }else{
+            organizational = result.recordsets;
+            const innerRequest = new sqlInstance.Request(pool);
+            innerRequest.query(`select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
+            from vieworgadvantages
+            where organization != '${org}'
+            and boxkey != '${key}'
+            group by dormantadvantage
+            order by 1;`,(err2,result2)=>{
             if(err) throw err;
             population = result2.recordsets;
             console.log('We got a response for the primary population donut chart',result2.recordsets.length);

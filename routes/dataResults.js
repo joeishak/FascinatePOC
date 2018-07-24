@@ -71,27 +71,34 @@ class Results {
 //     next();
 // });
 
-router.get('/data/:conference/:organization',(req,res,next)=>{
+router.get('/data/:conference',(req,res,next)=>{
+    console.log("Retreiving grid tile data");
     let conFilter = req.params.conference.split(':',)[1];
-    let orgFilter = req.params.organization.split(':',)[1];
+    // let orgFilter = req.params.organization.split(':',)[1];
+    conFilter = req.params.conference=='all' ? '' :conFilter;
+    if(conFilter == "all"){
+    executeQuery(`Select * from fascinationresults;`,res);
+        
+    } else {
+    executeQuery(`Select * from fascinationresults where conference like '%${conFilter}%';`,res);
+        
+    }
 
-    executeQuery(`Select * from fascinationresults where conference like '%${conFilter}%' and organization  like '%${orgFilter}%';`,res);
 });
 router.get('/primary-population/:organization/:conference',(req,res,next)=>{
-    let orgFilter = req.params.organization;
+    let orgFilter = req.params.organization.split(':',)[1];
     let conFilter = req.params.conference.split(':',)[1];
- 
-    orgFilter = orgFilter.split(':',)[1];
-    console.log('Fetching primary archetype population data for organization',orgFilter);
+    conFilter = conFilter=='all' ? '' :conFilter;
 
+    console.log('Fetching primary archetype population data for organization',orgFilter,conFilter);
     getPrimaryPopulationData(res, orgFilter,conFilter);
 });
 
 router.get('/secondary-population/:organization/:conference',(req,res,next)=>{
-    let orgFilter = req.params.organization;
+    let orgFilter = req.params.organization.split(':',)[1];
     let conFilter = req.params.conference.split(':',)[1];
+    conFilter = conFilter=='all' ? '' :conFilter;
 
-    orgFilter = orgFilter.split(':',)[1];
     console.log('Fetching secondary archetype population data for organization',orgFilter);
 
     getSecondaryPopulationData(res, orgFilter,conFilter);
@@ -115,6 +122,7 @@ router.get('/secondary-population/:organization/:conference',(req,res,next)=>{
 router.get('/dormant-population/:organization/:conference', (req,res,next) => {
     let orgFilter = req.params.organization.split(':',)[1];
     let conFilter = req.params.conference.split(':',)[1];
+    conFilter = conFilter=='all' ? '' : conFilter;
  
     // orgFilter = orgFilter.split(':',)[1];
     // conFilter = conFilter.split(':',)[1]
@@ -136,11 +144,22 @@ router.get('/rangebar-data:boxkey',(req,res,next)=>{
     }
     else executeQuery(`select * from ViewOrgAdvantages;`,res);
 });
-router.get('/organizations/:conference',(req,res,next)=>{
-    let conFilter = req.params.conference.split(':',)[1];
-    executeQuery(`select distinct organization from ViewOrgAdvantages where conference like '%${conFilter}%';`,res);
 
-})
+router.get('/organizations/:conference',(req,res,next)=>{
+    console.log(req.params.conference);
+    let conFilter = req.params.conference.split(':',)[1];
+    // this.conFilter = req.params.conference=='all' ? '' :this.conFilter;
+
+    console.log('Getting organizations for conferenece', conFilter)
+    if(conFilter =="all"){
+    executeQuery(`select distinct organization from ViewOrgAdvantages;`,res);
+
+    }else{
+        executeQuery(`select distinct organization from ViewOrgAdvantages where conference like '%${conFilter}%';`,res);
+
+    }
+
+});
 
 // router.get('/secondary-counts',(req,res,next) => {
 //    executeQuery(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
@@ -218,38 +237,54 @@ function getPrimaryPopulationData(res,org,con){
     let response = {};
     let population;
     let organizational;
+    let orgSql = "";
+    let popSql = "";
     org = (org==undefined ? "": org)
-    // console.log('filter: ', org);
+    // console.log('filter: ', con);
+    if(con == ''){
+      orgSql = `select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+      from vieworgadvantages
+      where organization in ('${org}')
+       group by primaryadvantage
+      order by 1;`
+      popSql = `select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+      from vieworgadvantages
+      where organization not in ('${org}')
+      group by primaryadvantage
+       order by 1;`
+    } else{
+        orgSql = `select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+        from vieworgadvantages
+        where organization in ('${org}')
+         and  conference in ('${con}')
+        group by primaryadvantage
+        order by 1;`
+        popSql = `select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+        from vieworgadvantages
+        where organization not in ('${org}')
+        and conference not like ('${con}')             
+        group by primaryadvantage
+         order by 1;`
+    }
     
-    request.query(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
-    from vieworgadvantages
-    where organization like '%${org}%'
-    and  conference like '%${con}%'
-     group by primaryadvantage
-    order by 1;`,  (err, result)=> {
+    request.query(orgSql,  (err, result)=> {
         if (err) {
             console.log(err);
             throw err;
         }else{
-            console.log('We got a response for the primary population donut chart',result.recordsets.length);
+            console.log('We got a response for the primary Organization donut chart',result.recordsets[0].length);
             organizational = result.recordsets;
-            // console.log(organizational);
+            console.log(organizational);
             const innerRequest = new sqlInstance.Request(pool);
-            innerRequest.query(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
-            from vieworgadvantages
-            where organization not like '%${org}$'
-            and conference not like '$${con}$'
-             group by primaryadvantage
-            
-             order by 1;`,(err2,result2)=>{
-            if(err) throw err;
-            population = result2.recordsets;
-            console.log('We got a response for the primary population donut chart',result2.recordsets.length);
+            innerRequest.query(popSql,(err2,result2)=>{
+                if(err) throw err;
+                population = result2.recordsets;
+                console.log('We got a response for the primary population donut chart',result2.recordsets[0].length);
 
-            response.population = population;
-            response.organizatinal = organizational
-            // console.log(response);
-            res.send(response);
+                response.population = population;
+                response.organizatinal = organizational
+                console.log(response);
+                res.send(response);
             });
     
            
@@ -261,33 +296,49 @@ function getSecondaryPopulationData(res,org,con){
     let response = {};
     let population;
     let organizational;
+    let orgSql = "";
+    let popSql = "";
     org = (org==undefined ? "": org)
     // console.log('filter: ', org);
     
-    request.query(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
-    from vieworgadvantages
-    where organization like '%${org}%'
-    and  conference like '%${con}%'
-     group by secondaryadvantage
-    order by 1;`,  (err, result)=> {
+    if(con == ''){
+        orgSql = `select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
+        from vieworgadvantages
+        where organization in ('${org}')
+        group by secondaryadvantage
+        order by 1;`
+        popSql = `select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total'
+        from vieworgadvantages
+        where organization not in ('${org}')
+        group by secondaryadvantage
+         order by 1;`
+      } else{
+          orgSql = `select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
+          from vieworgadvantages
+          where organization in ('${org}')
+           and  conference in ('${con}')
+           group by secondaryadvantage
+          order by 1;`
+          popSql = `select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
+          from vieworgadvantages
+          where organization not in ('${org}')
+          and conference not like ('${con}')             
+          group by secondaryadvantage
+           order by 1;`
+      }
+    request.query(orgSql,  (err, result)=> {
         if (err) {
             console.log(err);
             throw err;
         }else{
-            console.log('We got a response for the secondary population donut chart',result.recordsets.length);
+            // console.log('We got a response for the secondary Organization donut chart',result.recordsets[0].length);
             organizational = result.recordsets;
             // console.log(organizational);
             const innerRequest = new sqlInstance.Request(pool);
-            innerRequest.query(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
-            from vieworgadvantages
-            where organization not like'%${org}%'
-            and conference not like '%${con}%'
-             group by secondaryadvantage
-             order by 1;`,(err2,result2)=>{
+            innerRequest.query(popSql,(err2,result2)=>{
             if(err) throw err;
             population = result2.recordsets;
-            console.log('We got a response for the secondary population donut chart',result2.recordsets.length);
-
+            // console.log('We got a response for the secondary population donut chart',result2.recordsets[0].length);
             response.population = population;
             response.organizatinal = organizational
             // console.log(response);
@@ -303,31 +354,47 @@ function getDormantPopulationData(res,org,con){
     let response = {};
     let population;
     let organizational;
+    let orgSql = "";
+    let popSql = "";
     org = (org==undefined ? "": org)
-    
-    request.query(`select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
-    from vieworgadvantages
-    where organization like '%${org}%'
-    and conference like '%${con}%'
-     group by dormantadvantage
-    order by 1;`,  (err, result)=> {
+
+    if(con == ''){
+        orgSql = `select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total'  
+        from vieworgadvantages
+        where organization in ('${org}')
+        group by dormantadvantage
+        order by 1;`
+        popSql = `select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
+        from vieworgadvantages
+        where organization not in ('${org}')
+        group by dormantadvantage
+         order by 1;`
+      } else{
+          orgSql = `select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
+          from vieworgadvantages
+          where organization in ('${org}')
+           and  conference in ('${con}')
+           group by dormantadvantage
+          order by 1;`
+          popSql = `select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total'  
+          from vieworgadvantages
+          where organization not in ('${org}')
+          and conference not like ('${con}')             
+          group by dormantadvantage
+           order by 1;`
+      }
+
+    request.query(orgSql,  (err, result)=> {
         if (err) {
             console.log(err);
             throw err;
         }else{
             organizational = result.recordsets;
             const innerRequest = new sqlInstance.Request(pool);
-            innerRequest.query(`select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
-            from vieworgadvantages
-            where organization not ike '%${org}%'
-            and conference not like '%${con}%'
-             group by dormantadvantage
-            
-             order by 1;`,(err2,result2)=>{
+            innerRequest.query(popSql,(err2,result2)=>{
             if(err) throw err;
             population = result2.recordsets;
-            console.log('We got a response for the primary population donut chart',result2.recordsets.length);
-
+            // console.log('We got a response for the primary population donut chart',result2.recordsets.length);
             response.population = population;
             response.organizatinal = organizational
             res.send(response);

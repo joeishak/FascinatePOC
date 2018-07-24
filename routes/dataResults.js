@@ -65,30 +65,38 @@ class Results {
     }
 }
 
-// Default FootBALL API REQUESTS FOR DATA
-router.use((req, res, next) => {
-    console.log("Welcome to the Fascinate POC Route");
-    next();
-});
+// // Default FootBALL API REQUESTS FOR DATA
+// router.use((req, res, next) => {
+//     console.log("Welcome to the Fascinate POC Route");
+//     next();
+// });
 
-router.get('/data',(req,res,next)=>{
-    executeQuery("Select * from fascinationresults;",res);
+router.get('/data/:conference/:organization',(req,res,next)=>{
+    let conFilter = req.params.conference.split(':',)[1];
+    let orgFilter = req.params.organization.split(':',)[1];
+
+    executeQuery(`Select * from fascinationresults where conference like '%${conFilter}%' and organization  like '%${orgFilter}%';`,res);
 });
-router.get('/primary-population:organization',(req,res,next)=>{
+router.get('/primary-population/:organization/:conference',(req,res,next)=>{
     let orgFilter = req.params.organization;
+    let conFilter = req.params.conference.split(':',)[1];
+ 
     orgFilter = orgFilter.split(':',)[1];
     console.log('Fetching primary archetype population data for organization',orgFilter);
 
-    getPrimaryPopulationData(res, orgFilter);
+    getPrimaryPopulationData(res, orgFilter,conFilter);
 });
 
-router.get('/secondary-population:organization',(req,res,next)=>{
+router.get('/secondary-population/:organization/:conference',(req,res,next)=>{
     let orgFilter = req.params.organization;
+    let conFilter = req.params.conference.split(':',)[1];
+
     orgFilter = orgFilter.split(':',)[1];
     console.log('Fetching secondary archetype population data for organization',orgFilter);
 
-    getSecondaryPopulationData(res, orgFilter);
+    getSecondaryPopulationData(res, orgFilter,conFilter);
 });
+
 // router.get('/primary-archetype-population/:organization/:boxkey',(req,res,next)=>{
 //     let orgFilter = req.params.organization;
 //     let boxFilter = req.params.boxkey;
@@ -103,12 +111,20 @@ router.get('/secondary-population:organization',(req,res,next)=>{
 //     getDormantArchetypePopulationData(res,orgFilter,boxFilter);
 
 // });
-router.get('/dormant-population:organization',(req,res,next)=>{
-    let orgFilter = req.params.organization;
-    orgFilter = orgFilter.split(':',)[1];
-    console.log('Fetching dormant population data for organization',orgFilter);
-    getDormantPopulationData(res, orgFilter);
+
+router.get('/dormant-population/:organization/:conference', (req,res,next) => {
+    let orgFilter = req.params.organization.split(':',)[1];
+    let conFilter = req.params.conference.split(':',)[1];
+ 
+    // orgFilter = orgFilter.split(':',)[1];
+    // conFilter = conFilter.split(':',)[1]
+    console.log(orgFilter);
+    console.log(conFilter);
+    
+    // console.log('Fetching dormant population data for organization',orgFilter);
+    getDormantPopulationData(res, orgFilter,conFilter);
 });
+
 router.get('/rangebar-data:boxkey',(req,res,next)=>{
      
     let boxkey = req.params.boxkey;
@@ -120,16 +136,21 @@ router.get('/rangebar-data:boxkey',(req,res,next)=>{
     }
     else executeQuery(`select * from ViewOrgAdvantages;`,res);
 });
+router.get('/organizations/:conference',(req,res,next)=>{
+    let conFilter = req.params.conference.split(':',)[1];
+    executeQuery(`select distinct organization from ViewOrgAdvantages where conference like '%${conFilter}%';`,res);
 
-router.get('/secondary-counts',(req,res,next) => {
-   executeQuery(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
-   from fascinationresults group by secondaryadvantage`,res); 
-});
+})
 
-router.get('/primary-counts',(req,res,next) => {
-   executeQuery(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
-   from fascinationresults group by primaryadvantage`,res); 
-});
+// router.get('/secondary-counts',(req,res,next) => {
+//    executeQuery(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
+//    from fascinationresults group by secondaryadvantage`,res); 
+// });
+
+// router.get('/primary-counts',(req,res,next) => {
+//    executeQuery(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
+//    from fascinationresults group by primaryadvantage`,res); 
+// });
 
 router.get('/insertData',(req,res,next)=>{
 
@@ -192,7 +213,7 @@ function getIndex(advantage){
           }
      
     }
-function getPrimaryPopulationData(res,org){
+function getPrimaryPopulationData(res,org,con){
     const request = new sqlInstance.Request(pool);
     let response = {};
     let population;
@@ -202,7 +223,8 @@ function getPrimaryPopulationData(res,org){
     
     request.query(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
     from vieworgadvantages
-    where organization = '${org}'
+    where organization like '%${org}%'
+    and  conference like '%${con}%'
      group by primaryadvantage
     order by 1;`,  (err, result)=> {
         if (err) {
@@ -215,7 +237,8 @@ function getPrimaryPopulationData(res,org){
             const innerRequest = new sqlInstance.Request(pool);
             innerRequest.query(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
             from vieworgadvantages
-            where organization != '${org}'
+            where organization not like '%${org}$'
+            and conference not like '$${con}$'
              group by primaryadvantage
             
              order by 1;`,(err2,result2)=>{
@@ -233,7 +256,7 @@ function getPrimaryPopulationData(res,org){
         }        
     }); 
 }
-function getSecondaryPopulationData(res,org){
+function getSecondaryPopulationData(res,org,con){
     const request = new sqlInstance.Request(pool);
     let response = {};
     let population;
@@ -243,7 +266,8 @@ function getSecondaryPopulationData(res,org){
     
     request.query(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
     from vieworgadvantages
-    where organization = '${org}'
+    where organization like '%${org}%'
+    and  conference like '%${con}%'
      group by secondaryadvantage
     order by 1;`,  (err, result)=> {
         if (err) {
@@ -256,9 +280,9 @@ function getSecondaryPopulationData(res,org){
             const innerRequest = new sqlInstance.Request(pool);
             innerRequest.query(`select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
             from vieworgadvantages
-            where organization != '${org}'
+            where organization not like'%${org}%'
+            and conference not like '%${con}%'
              group by secondaryadvantage
-            
              order by 1;`,(err2,result2)=>{
             if(err) throw err;
             population = result2.recordsets;
@@ -274,7 +298,7 @@ function getSecondaryPopulationData(res,org){
         }        
     }); 
 }
-function getDormantPopulationData(res,org){
+function getDormantPopulationData(res,org,con){
     const request = new sqlInstance.Request(pool);
     let response = {};
     let population;
@@ -283,7 +307,8 @@ function getDormantPopulationData(res,org){
     
     request.query(`select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
     from vieworgadvantages
-    where organization = '${org}'
+    where organization like '%${org}%'
+    and conference like '%${con}%'
      group by dormantadvantage
     order by 1;`,  (err, result)=> {
         if (err) {
@@ -294,7 +319,8 @@ function getDormantPopulationData(res,org){
             const innerRequest = new sqlInstance.Request(pool);
             innerRequest.query(`select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total' 
             from vieworgadvantages
-            where organization != '${org}'
+            where organization not ike '%${org}%'
+            and conference not like '%${con}%'
              group by dormantadvantage
             
              order by 1;`,(err2,result2)=>{

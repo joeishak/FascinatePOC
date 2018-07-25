@@ -70,7 +70,6 @@ class Results {
 //     console.log("Welcome to the Fascinate POC Route");
 //     next();
 // });
-
 router.get('/data/:conference',(req,res,next)=>{
     console.log("Retreiving grid tile data");
     let conFilter = req.params.conference.split(':',)[1];

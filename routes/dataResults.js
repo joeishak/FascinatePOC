@@ -151,10 +151,17 @@ router.get('/organizations/:conference',(req,res,next)=>{
 
     console.log('Getting organizations for conferenece', conFilter)
     if(conFilter =="all"){
-    executeQuery(`select distinct organization from ViewOrgAdvantages;`,res);
+    executeQuery(`select top 10 organization, count(organization)
+    from ViewOrgAdvantages
+    group by organization
+    order by 2 desc;`,res);
 
     }else{
-        executeQuery(`select distinct organization from ViewOrgAdvantages where conference like '%${conFilter}%';`,res);
+        executeQuery(`select top 10 organization, count(organization)
+        from ViewOrgAdvantages
+        where conference like '%${conFilter}%'
+        group by organization
+        order by 2 desc;`,res);
 
     }
 

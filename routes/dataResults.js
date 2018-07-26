@@ -70,17 +70,20 @@ class Results {
 //     console.log("Welcome to the Fascinate POC Route");
 //     next();
 // });
-router.get('/data/:conference',(req,res,next)=>{
+router.get('/data/:conference/:organization',(req,res,next)=>{
     console.log("Retreiving grid tile data");
     let conFilter = req.params.conference.split(':',)[1];
-    // let orgFilter = req.params.organization.split(':',)[1];
+    let orgFilter = req.params.organization.split(':',)[1];
     conFilter = req.params.conference=='all' ? '' :conFilter;
-    if(conFilter == "all"){
-    executeQuery(`Select * from fascinationresults;`,res);
+    if(conFilter == "all"  && orgFilter!= "all"){
+    executeQuery(`Select * from fascinationresults where organization like'%${orgFilter}%';`,res);
+        
+    } else if(conFilter !="all" && orgFilter!= "all") {
+    executeQuery(`Select * from fascinationresults where conference like '%${conFilter}%' and organization like'%${orgFilter}%';`,res);
         
     } else {
     executeQuery(`Select * from fascinationresults where conference like '%${conFilter}%';`,res);
-        
+
     }
 
 });

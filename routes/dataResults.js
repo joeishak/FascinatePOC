@@ -5,6 +5,7 @@ let router                     = express.Router();
 // let config                     = require('../configuration/config');
 let sqlInstance                = require('mssql');
 // let db                         = require('../configuration/db');
+let data = require('../data');
 var config = 
    {
      user: 'serverAdmin', // update me
@@ -28,8 +29,7 @@ class Results {
     constructor(obj){
         // console.log(obj);
         this.ga_gender=obj.ga_gender,
-		this.Organization=obj.Organization,
-		this.create_date=obj.create_date,
+		this.Organization=obj.organization,
 		this.conference_code=obj.conference_code,
 		this.primary =obj.primary,
         this.primaryIndex = getIndex(this.primary),
@@ -49,10 +49,10 @@ class Results {
     }
 
     insertIntoDatabase(execute){
-        let sql = `Insert  [fascinationresults] (fUserId, gender, organization,creationDate, `+
+        let sql = `Insert  into dbo.fascinationresults (fUserId, gender, organization, `+
             `conference, primaryAdvantage,primaryIndex, secondaryIndex, secondaryAdvantage, dormantAdvantage, archetype,`+
            ` power, trust, prestige, passion, mystique, innovation, alert,boxKey) Values(`+
-            `'${this.user_id}', '${this.ga_gender}', '${this.Organization}','${this.create_date}','${this.conference_code}',`+
+            `'${this.user_id}', '${this.ga_gender}', '${this.Organization}','${this.conference_code}',`+
            ` '${this.primary}',${this.primaryIndex},${this.secondaryIndex},'${this.secondary}','${this.dormant}','${this.archetype}',${this.power},${this.trust},`+
             `${this.prestige},${this.passion},${this.mystique},${this.innovation},${this.alert},${this.key});`;  
         if(execute){
@@ -76,13 +76,13 @@ router.get('/data/:conference/:organization',(req,res,next)=>{
     let orgFilter = req.params.organization.split(':',)[1];
     conFilter = req.params.conference=='all' ? '' :conFilter;
     if(conFilter == "all"  && orgFilter!= "all"){
-    executeQuery(`Select * from fascinationresults where organization like'%${orgFilter}%';`,res);
+    executeQuery(`Select * from dbo.fascinationresults where organization like'%${orgFilter}%';`,res);
         
     } else if(conFilter !="all" && orgFilter!= "all") {
-    executeQuery(`Select * from fascinationresults where conference like '%${conFilter}%' and organization like'%${orgFilter}%';`,res);
+    executeQuery(`Select * from dbo.fascinationresults where conference like '%${conFilter}%' and organization like'%${orgFilter}%';`,res);
         
     } else {
-    executeQuery(`Select * from fascinationresults where conference like '%${conFilter}%';`,res);
+    executeQuery(`Select * from dbo.fascinationresults where conference like '%${conFilter}%';`,res);
 
     }
 
@@ -190,15 +190,13 @@ router.get('/insertData',(req,res,next)=>{
        let object = data[i];
        let incommingRow = new Results(object);
        let newSql = incommingRow.insertIntoDatabase(true);
-       if(newSql.includes('undefined')){
-
-       }else{
+      
            sql+=newSql;
 
-       }
        // console.log(newSql);
     }
-   executeQuery(sql,res,1)
+    res.send(sql);
+//    executeQuery(sql,res,1)
 });
 function executeQuery(query,res,type = 1) {
 
@@ -210,7 +208,7 @@ function executeQuery(query,res,type = 1) {
         }
 
         data = result.recordset;
-        // console.log(data);
+        console.log(data);
         res.send(data);
     }); 
 

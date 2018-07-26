@@ -77,14 +77,18 @@ router.get('/data/:conference/:organization',(req,res,next)=>{
     console.log("Retreiving grid tile data");
     let conFilter = req.params.conference.split(':',)[1];
     let orgFilter = req.params.organization.split(':',)[1];
-    conFilter = req.params.conference=='all' ? '' :conFilter;
+    // conFilter = req.params.conference=='all' ? '' :conFilter;
     if(conFilter == "all"  && orgFilter!= "all"){
     executeQuery(`Select * from dbo.fascinationresults where organization like'%${orgFilter}%';`,res);
         
     } else if(conFilter !="all" && orgFilter!= "all") {
     executeQuery(`Select * from dbo.fascinationresults where conference like '%${conFilter}%' and organization like'%${orgFilter}%';`,res);
         
-    } else {
+    } else if(conFilter == "all" && orgFilter == "all"){
+    executeQuery(`Select * from dbo.fascinationresults ;`,res);
+
+    }
+        else {
     executeQuery(`Select * from dbo.fascinationresults where conference like '%${conFilter}%';`,res);
 
     }

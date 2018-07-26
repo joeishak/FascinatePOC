@@ -64,7 +64,10 @@ class Results {
        
     }
 }
+router.get('/shuffler',(req,res,next)=>{
+    executeQuery(`Select top 25 * from dbo.fascinationresults ;`,res);
 
+})
 // // Default FootBALL API REQUESTS FOR DATA
 // router.use((req, res, next) => {
 //     console.log("Welcome to the Fascinate POC Route");

@@ -73,6 +73,17 @@ router.get('/shuffler',(req,res,next)=>{
 //     console.log("Welcome to the Fascinate POC Route");
 //     next();
 // });
+router.get('/genderData/:conference/:organization/:boxkey',(req,res,next)=>{
+
+    let conFilter = req.params.conference.split(':',)[1];
+    let orgFilter = req.params.organization.split(':',)[1];
+    let boxFilter = req.params.boxkey.split(':',)[1];
+
+
+    console.log("Retreiving gender data", orgFilter,conFilter,boxFilter);
+
+    getGenderData(orgFilter,conFilter,boxFilter,res);
+});
 router.get('/data/:conference/:organization',(req,res,next)=>{
     console.log("Retreiving grid tile data");
     let conFilter = req.params.conference.split(':',)[1];
@@ -218,6 +229,81 @@ function executeQuery(query,res,type = 1) {
         console.log(data);
         res.send(data);
     }); 
+
+}
+function getGenderData(orgFilter,conFilter,boxFilter,res){
+    console.log("Executing gender data query", orgFilter,conFilter,boxFilter);
+
+    let responseObj = {conference:[],organization:[],box:[]};
+    const request = new sqlInstance.Request(pool);
+    let orgCategory = (orgFilter=="all"? "all": orgFilter);
+    let confCategory = (conFilter=="all"? "all": conFilter);
+
+    let maleVal, femaleVal, otherVal = 0;
+     conFilter = (conFilter=="all"? "": conFilter);
+     orgFilter = (orgFilter=="all"? "": orgFilter);
+    
+    let conferenceGendersSql = `select gender, count(gender) 'Value'
+    from dbo.fascinationresults
+    where conference like '%${conFilter}%'
+    group by gender`;
+
+    let organizationGenderSql = `select gender, count(gender) 'Value'
+    from dbo.fascinationresults
+    where organization like '%${orgFilter}%'
+    and conference like '%${conFilter}%'
+    group by gender`;
+
+    let boxKeyGenderSql = `select gender, count(gender) 'Value'
+    from dbo.fascinationresults
+    where conference like '%${conFilter}%'
+    and organization like '%${orgFilter}%'
+    and boxkey = ${boxFilter}
+    group by gender`
+    console.log(boxKeyGenderSql);
+    //Get Total Genders for Conference
+    request.query(conferenceGendersSql,  (err, result)=> {
+            if (err) {
+                console.log(err);
+                throw err;
+            }else{
+               
+                // console.log("Result for Conference Genders", result.recordset.length);
+                responseObj.conference = result.recordset;
+
+                const innerRequest = new sqlInstance.Request(pool);
+                //Get Total Genders for Organization at the Conference
+                innerRequest.query(organizationGenderSql,(err1,result1) => {
+                    if (err1) {
+                        console.log(err1);
+                        throw err1;
+                    }
+                    responseObj.organization = result1.recordset;
+                     
+    
+           
+                    
+                    const inner2Request = new sqlInstance.Request(pool);
+
+                     //Get Total Genders for Organization at the Conference for this boxkey
+                    inner2Request.query(boxKeyGenderSql,(err2,result2)=>{
+                        if (err2) {
+                            console.log(err2);
+                            throw err2;
+                        }
+                    console.log(result2);
+                     console.log("Result for Conference, Organization, and box Genders", result2);
+                     responseObj.box = result2.recordset;
+                     res.send(responseObj)
+                    
+                    });
+                });
+        
+               
+            
+            }        
+
+        }); 
 
 }
 function getIndex(advantage){

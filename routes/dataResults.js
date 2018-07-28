@@ -108,7 +108,7 @@ router.get('/data/:conference/:organization',(req,res,next)=>{
 router.get('/primary-population/:organization/:conference',(req,res,next)=>{
     let orgFilter = req.params.organization.split(':',)[1];
     let conFilter = req.params.conference.split(':',)[1];
-    conFilter = conFilter=='all' ? '' :conFilter;
+    conFilter = (conFilter=='all') ? '' : conFilter;
 
     console.log('Fetching primary archetype population data for organization',orgFilter,conFilter);
     getPrimaryPopulationData(res, orgFilter,conFilter);
@@ -119,25 +119,12 @@ router.get('/secondary-population/:organization/:conference',(req,res,next)=>{
     let conFilter = req.params.conference.split(':',)[1];
     conFilter = conFilter=='all' ? '' :conFilter;
 
-    console.log('Fetching secondary archetype population data for organization',orgFilter);
+    console.log('Fetching secondary archetype population data for organization',orgFilter,conFilter);
 
     getSecondaryPopulationData(res, orgFilter,conFilter);
 });
 
-// router.get('/primary-archetype-population/:organization/:boxkey',(req,res,next)=>{
-//     let orgFilter = req.params.organization;
-//     let boxFilter = req.params.boxkey;
-//     console.log(`Fetching primary ${boxFilter} population data for ${orgFilter}`);
-//     getPrimaryArchetypePopulationData(res,orgFilter,boxFilter);
 
-// });
-// router.get('/dormant-archetype-population/:organization/:boxkey',(req,res,next)=>{
-//     let orgFilter = req.params.organization;
-//     let boxFilter = req.params.boxkey;
-//     console.log(`Fetching dormant ${boxFilter} population data for ${orgFilter}`);
-//     getDormantArchetypePopulationData(res,orgFilter,boxFilter);
-
-// });
 
 router.get('/dormant-population/:organization/:conference', (req,res,next) => {
     let orgFilter = req.params.organization.split(':',)[1];
@@ -146,10 +133,10 @@ router.get('/dormant-population/:organization/:conference', (req,res,next) => {
  
     // orgFilter = orgFilter.split(':',)[1];
     // conFilter = conFilter.split(':',)[1]
-    console.log(orgFilter);
-    console.log(conFilter);
+    // console.log(orgFilter);
+    // console.log(conFilter);
     
-    // console.log('Fetching dormant population data for organization',orgFilter);
+    console.log('Fetching dormant population data for organization',orgFilter, conFilter);
     getDormantPopulationData(res, orgFilter,conFilter);
 });
 
@@ -166,11 +153,11 @@ router.get('/rangebar-data:boxkey',(req,res,next)=>{
 });
 
 router.get('/organizations/:conference',(req,res,next)=>{
-    console.log(req.params.conference);
+    // console.log(req.params.conference);
     let conFilter = req.params.conference.split(':',)[1];
     // this.conFilter = req.params.conference=='all' ? '' :this.conFilter;
 
-    console.log('Getting organizations for conferenece', conFilter)
+    // console.log('Getting organizations for conferenece', conFilter)
     if(conFilter =="all"){
     executeQuery(`select top 10 organization, count(organization)
     from ViewOrgAdvantages
@@ -226,7 +213,7 @@ function executeQuery(query,res,type = 1) {
         }
 
         data = result.recordset;
-        console.log(data);
+        // console.log(data);
         res.send(data);
     }); 
 
@@ -260,7 +247,7 @@ function getGenderData(orgFilter,conFilter,boxFilter,res){
     and organization like '%${orgFilter}%'
     and boxkey = ${boxFilter}
     group by gender`
-    console.log(boxKeyGenderSql);
+    // console.log(boxKeyGenderSql);
     //Get Total Genders for Conference
     request.query(conferenceGendersSql,  (err, result)=> {
             if (err) {
@@ -291,8 +278,8 @@ function getGenderData(orgFilter,conFilter,boxFilter,res){
                             console.log(err2);
                             throw err2;
                         }
-                    console.log(result2);
-                     console.log("Result for Conference, Organization, and box Genders", result2);
+                    // console.log(result2);
+                    //  console.log("Result for Conference, Organization, and box Genders", result2);
                      responseObj.box = result2.recordset;
                      res.send(responseObj)
                     
@@ -362,7 +349,7 @@ function getPrimaryPopulationData(res,org,con){
         popSql = `select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
         from vieworgadvantages
         where organization not in ('${org}')
-        and conference not like ('${con}')             
+        and conference like ('${con}')             
         group by primaryadvantage
          order by 1;`
     }
@@ -372,18 +359,18 @@ function getPrimaryPopulationData(res,org,con){
             console.log(err);
             throw err;
         }else{
-            console.log('We got a response for the primary Organization donut chart',result.recordsets[0].length);
+            // console.log('We got a response for the primary Organization donut chart',result.recordsets[0].length);
             organizational = result.recordsets;
-            console.log(organizational);
+            // console.log(organizational);
             const innerRequest = new sqlInstance.Request(pool);
             innerRequest.query(popSql,(err2,result2)=>{
                 if(err) throw err;
                 population = result2.recordsets;
-                console.log('We got a response for the primary population donut chart',result2.recordsets[0].length);
+                // console.log('We got a response for the primary population donut chart',result2.recordsets[0].length);
 
                 response.population = population;
                 response.organizatinal = organizational
-                console.log(response);
+                // console.log(response);
                 res.send(response);
             });
     
@@ -422,7 +409,7 @@ function getSecondaryPopulationData(res,org,con){
           popSql = `select secondaryadvantage 'Advantage' ,count(secondaryadvantage) 'Total' 
           from vieworgadvantages
           where organization not in ('${org}')
-          and conference not like ('${con}')             
+          and conference  like ('${con}')             
           group by secondaryadvantage
            order by 1;`
       }
@@ -479,7 +466,7 @@ function getDormantPopulationData(res,org,con){
           popSql = `select dormantadvantage 'Advantage' ,count(dormantadvantage) 'Total'  
           from vieworgadvantages
           where organization not in ('${org}')
-          and conference not like ('${con}')             
+          and conference  like ('${con}')             
           group by dormantadvantage
            order by 1;`
       }
@@ -524,9 +511,9 @@ function getPrimaryArchetypePopulationData(res,org,key){
             console.log(err);
             throw err;
         }else{
-            console.log('We got a response for the primary population donut chart',result.recordsets.length);
+            // console.log('We got a response for the primary population donut chart',result.recordsets.length);
             organizational = result.recordsets;
-            console.log(organizational);
+            // console.log(organizational);
             const innerRequest = new sqlInstance.Request(pool);
             innerRequest.query(`select primaryadvantage 'Advantage' ,count(primaryadvantage) 'Total' 
             from vieworgadvantages
@@ -536,7 +523,7 @@ function getPrimaryArchetypePopulationData(res,org,key){
              order by 1;`,(err2,result2)=>{
             if(err) throw err;
             population = result2.recordsets;
-            console.log('We got a response for the primary population donut chart',result2.recordsets.length);
+            // console.log('We got a response for the primary population donut chart',result2.recordsets.length);
 
             response.population = population;
             response.organizatinal = organizational
@@ -576,7 +563,7 @@ function getDormantArchetypePopulationData(res,org,key){
             order by 1;`,(err2,result2)=>{
             if(err) throw err;
             population = result2.recordsets;
-            console.log('We got a response for the primary population donut chart',result2.recordsets.length);
+            // console.log('We got a response for the primary population donut chart',result2.recordsets.length);
 
             response.population = population;
             response.organizatinal = organizational
